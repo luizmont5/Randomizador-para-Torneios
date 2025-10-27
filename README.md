@@ -143,6 +143,37 @@ Carimbo de data/hora,Endereço de e-mail,Nome Completo,...
 - **Competições Locais**: Fácil configuração e uso
 - **Eventos Escolares**: Interface amigável
 
+## 🌊 GitFlow e CI/CD
+
+Este projeto utiliza GitFlow para gerenciamento de branches e GitHub Actions para CI/CD:
+
+### Estrutura de Branches
+- **`main`**: Código de produção estável
+- **`develop`**: Código de desenvolvimento integrado
+- **`feature/*`**: Novas funcionalidades
+- **`release/*`**: Preparação de releases
+- **`hotfix/*`**: Correções urgentes
+
+### Pipeline Automático
+- ✅ Validação de sintaxe PHP e JavaScript
+- ✅ Testes automáticos
+- ✅ Deploy automático por ambiente
+- ✅ Criação de releases automática
+
+### Scripts de Automação
+```bash
+# Criar nova feature
+./gitflow-helper.sh feature nome-da-feature
+
+# Criar release
+./gitflow-helper.sh release 1.0.0
+
+# Criar hotfix
+./gitflow-helper.sh hotfix 1.0.1
+```
+
+📚 **Documentação Completa**: [GITFLOW.md](GITFLOW.md) | [EXEMPLO-GITFLOW.md](EXEMPLO-GITFLOW.md)
+
 ## 📈 Melhorias Futuras
 
 - [ ] Sistema de grupos/seeding

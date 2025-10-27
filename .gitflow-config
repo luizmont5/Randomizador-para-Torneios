@@ -1,0 +1,33 @@
+# Configuração do GitFlow para Randomizador de Torneios
+
+[gitflow "branch"]
+    master = main
+    develop = develop
+
+[gitflow "prefix"]
+    feature = feature/
+    release = release/
+    hotfix = hotfix/
+    support = support/
+    versiontag = v
+
+[gitflow "path"]
+    hooks = .git/hooks
+
+# Configurações específicas do projeto
+[project]
+    name = "Randomizador de Torneios"
+    description = "Sistema completo para gerenciamento e sorteio de torneios 1x1 de Valorant"
+    version = "1.0.0"
+    repository = "https://github.com/luizmont5/Randomizador-para-Torneios.git"
+
+[ci-cd]
+    develop-deploy = true
+    main-deploy = true
+    auto-release = true
+    require-pr = true
+    require-review = true
+
+[environments]
+    development = "https://dev.randomizador.com"
+    production = "https://randomizador.com"
