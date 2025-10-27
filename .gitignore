@@ -1,0 +1,49 @@
+# Arquivos de backup do sistema
+tournament_backup.json
+
+# Arquivos de log
+*.log
+
+# Arquivos temporários
+*.tmp
+*.temp
+
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
+
+# Arquivos de IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Arquivos de configuração local
+config.local.php
+.env
+
+# Arquivos de upload (se houver)
+uploads/
+temp/
+
+# Arquivos de cache
+cache/
+*.cache
+
+# Arquivos de sessão PHP
+sess_*
+
+# Arquivos de erro PHP
+error_log
+php_errors.log
+
+# Arquivos de backup do Windows
+*.bak
+*~
+
+# Node modules (se houver)
+node_modules/
+
+# Composer (se houver)
+vendor/
+composer.lock
