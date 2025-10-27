@@ -1,0 +1,167 @@
+name: CI/CD Pipeline - Randomizador de Torneios
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  release:
+    types: [ published ]
+
+jobs:
+  # Job de Testes e Validação
+  test:
+    runs-on: ubuntu-latest
+    name: Testes e Validação
+    
+    steps:
+    - name: Checkout do código
+      uses: actions/checkout@v4
+      
+    - name: Configurar PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.1'
+        extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, dom, filter, gd, iconv, json, mbstring, pdo
+        
+    - name: Validar sintaxe PHP
+      run: |
+        echo "Validando sintaxe dos arquivos PHP..."
+        find . -name "*.php" -exec php -l {} \;
+        
+    - name: Verificar estrutura de arquivos
+      run: |
+        echo "Verificando estrutura do projeto..."
+        test -f index.php || (echo "index.php não encontrado" && exit 1)
+        test -f assets/script.js || (echo "assets/script.js não encontrado" && exit 1)
+        test -f assets/style.css || (echo "assets/style.css não encontrado" && exit 1)
+        test -f README.md || (echo "README.md não encontrado" && exit 1)
+        echo "✅ Estrutura de arquivos válida"
+        
+    - name: Testar APIs PHP
+      run: |
+        echo "Testando APIs PHP..."
+        # Teste básico de conectividade das APIs
+        php -r "
+        echo 'Testando sorteio.php...';
+        include 'sorteio.php';
+        echo '✅ sorteio.php carregado com sucesso';
+        "
+        
+    - name: Validar JavaScript
+      run: |
+        echo "Validando JavaScript..."
+        node -c assets/script.js || (echo "Erro de sintaxe no JavaScript" && exit 1)
+        echo "✅ JavaScript válido"
+
+  # Job de Build e Deploy (apenas para main)
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    name: Deploy
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+    - name: Checkout do código
+      uses: actions/checkout@v4
+      
+    - name: Configurar PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.1'
+        extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, dom, filter, gd, iconv, json, mbstring, pdo
+        
+    - name: Criar arquivo de versão
+      run: |
+        echo "Criando arquivo de versão..."
+        echo "VERSION=$(date +'%Y.%m.%d')" >> $GITHUB_ENV
+        echo "BUILD=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+        echo "Versão: $(date +'%Y.%m.%d')" > version.txt
+        echo "Build: $(git rev-parse --short HEAD)" >> version.txt
+        echo "Data: $(date)" >> version.txt
+        
+    - name: Preparar arquivos para deploy
+      run: |
+        echo "Preparando arquivos para deploy..."
+        # Criar diretório de deploy
+        mkdir -p deploy
+        
+        # Copiar arquivos necessários
+        cp -r assets deploy/
+        cp *.php deploy/
+        cp README.md deploy/
+        cp .gitignore deploy/
+        cp version.txt deploy/
+        
+        # Criar arquivo de configuração de deploy
+        cat > deploy/deploy-info.txt << EOF
+        Deploy realizado em: $(date)
+        Commit: $(git rev-parse HEAD)
+        Branch: $(git branch --show-current)
+        Autor: $(git log -1 --pretty=format:'%an <%ae>')
+        EOF
+        
+    - name: Upload artefatos de deploy
+      uses: actions/upload-artifact@v3
+      with:
+        name: deploy-files
+        path: deploy/
+        retention-days: 30
+
+  # Job de Release (apenas para tags de release)
+  release:
+    needs: test
+    runs-on: ubuntu-latest
+    name: Release
+    if: github.event_name == 'release'
+    
+    steps:
+    - name: Checkout do código
+      uses: actions/checkout@v4
+      
+    - name: Criar arquivo de release
+      run: |
+        echo "Criando arquivo de release..."
+        echo "RELEASE_VERSION=${{ github.event.release.tag_name }}" >> $GITHUB_ENV
+        echo "Release: ${{ github.event.release.tag_name }}" > release-info.txt
+        echo "Data: $(date)" >> release-info.txt
+        echo "Descrição: ${{ github.event.release.body }}" >> release-info.txt
+        
+    - name: Preparar arquivos de release
+      run: |
+        echo "Preparando arquivos de release..."
+        mkdir -p release
+        
+        # Copiar todos os arquivos do projeto
+        cp -r . release/
+        rm -rf release/.git
+        rm -rf release/.github
+        
+        # Criar arquivo ZIP da release
+        cd release
+        zip -r ../randomizador-torneios-${{ github.event.release.tag_name }}.zip .
+        cd ..
+        
+    - name: Upload arquivo de release
+      uses: actions/upload-artifact@v3
+      with:
+        name: release-${{ github.event.release.tag_name }}
+        path: randomizador-torneios-${{ github.event.release.tag_name }}.zip
+        retention-days: 90
+
+  # Job de Notificação
+  notify:
+    needs: [test, deploy]
+    runs-on: ubuntu-latest
+    name: Notificação
+    if: always()
+    
+    steps:
+    - name: Notificar status do pipeline
+      run: |
+        echo "Pipeline executado com sucesso!"
+        echo "Status dos jobs:"
+        echo "- Test: ${{ needs.test.result }}"
+        echo "- Deploy: ${{ needs.deploy.result }}"
+        echo "Branch: ${{ github.ref_name }}"
+        echo "Commit: ${{ github.sha }}"

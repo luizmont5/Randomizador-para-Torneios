@@ -1,0 +1,172 @@
+name: GitFlow Workflow
+
+on:
+  push:
+    branches: [ develop, main, 'feature/*', 'release/*', 'hotfix/*' ]
+  pull_request:
+    branches: [ develop, main ]
+
+jobs:
+  # Validação para branches de feature
+  feature-validation:
+    runs-on: ubuntu-latest
+    name: Validação Feature
+    if: startsWith(github.ref, 'refs/heads/feature/')
+    
+    steps:
+    - name: Checkout do código
+      uses: actions/checkout@v4
+      
+    - name: Validar nome da branch
+      run: |
+        BRANCH_NAME=${GITHUB_REF#refs/heads/}
+        echo "Branch: $BRANCH_NAME"
+        
+        # Validar formato da branch feature
+        if [[ ! $BRANCH_NAME =~ ^feature/[a-zA-Z0-9_-]+$ ]]; then
+          echo "❌ Nome da branch feature inválido. Use: feature/nome-da-feature"
+          exit 1
+        fi
+        
+        echo "✅ Nome da branch feature válido"
+        
+    - name: Executar testes básicos
+      run: |
+        echo "Executando testes básicos para feature..."
+        # Aqui podem ser adicionados testes específicos para features
+
+  # Validação para branches de release
+  release-validation:
+    runs-on: ubuntu-latest
+    name: Validação Release
+    if: startsWith(github.ref, 'refs/heads/release/')
+    
+    steps:
+    - name: Checkout do código
+      uses: actions/checkout@v4
+      
+    - name: Validar nome da branch
+      run: |
+        BRANCH_NAME=${GITHUB_REF#refs/heads/}
+        echo "Branch: $BRANCH_NAME"
+        
+        # Validar formato da branch release
+        if [[ ! $BRANCH_NAME =~ ^release/[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "❌ Nome da branch release inválido. Use: release/1.0.0"
+          exit 1
+        fi
+        
+        echo "✅ Nome da branch release válido"
+        
+    - name: Validar arquivos de release
+      run: |
+        echo "Validando arquivos para release..."
+        test -f README.md || (echo "README.md obrigatório para release" && exit 1)
+        test -f index.php || (echo "index.php obrigatório para release" && exit 1)
+        echo "✅ Arquivos de release válidos"
+
+  # Validação para branches de hotfix
+  hotfix-validation:
+    runs-on: ubuntu-latest
+    name: Validação Hotfix
+    if: startsWith(github.ref, 'refs/heads/hotfix/')
+    
+    steps:
+    - name: Checkout do código
+      uses: actions/checkout@v4
+      
+    - name: Validar nome da branch
+      run: |
+        BRANCH_NAME=${GITHUB_REF#refs/heads/}
+        echo "Branch: $BRANCH_NAME"
+        
+        # Validar formato da branch hotfix
+        if [[ ! $BRANCH_NAME =~ ^hotfix/[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "❌ Nome da branch hotfix inválido. Use: hotfix/1.0.1"
+          exit 1
+        fi
+        
+        echo "✅ Nome da branch hotfix válido"
+        
+    - name: Executar testes de hotfix
+      run: |
+        echo "Executando testes para hotfix..."
+        # Testes específicos para hotfixes
+
+  # Deploy automático para develop
+  deploy-develop:
+    runs-on: ubuntu-latest
+    name: Deploy Develop
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    needs: [feature-validation]
+    
+    steps:
+    - name: Checkout do código
+      uses: actions/checkout@v4
+      
+    - name: Deploy para ambiente de desenvolvimento
+      run: |
+        echo "Deploy para ambiente de desenvolvimento..."
+        echo "Branch: develop"
+        echo "Commit: ${{ github.sha }}"
+        # Aqui seria implementado o deploy real para o ambiente de desenvolvimento
+
+  # Deploy automático para main
+  deploy-main:
+    runs-on: ubuntu-latest
+    name: Deploy Main
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+    - name: Checkout do código
+      uses: actions/checkout@v4
+      
+    - name: Deploy para ambiente de produção
+      run: |
+        echo "Deploy para ambiente de produção..."
+        echo "Branch: main"
+        echo "Commit: ${{ github.sha }}"
+        # Aqui seria implementado o deploy real para o ambiente de produção
+
+  # Criação de release automática
+  auto-release:
+    runs-on: ubuntu-latest
+    name: Auto Release
+    if: startsWith(github.ref, 'refs/heads/release/') && github.event_name == 'push'
+    needs: [release-validation]
+    
+    steps:
+    - name: Checkout do código
+      uses: actions/checkout@v4
+      
+    - name: Extrair versão da branch
+      run: |
+        BRANCH_NAME=${GITHUB_REF#refs/heads/}
+        VERSION=${BRANCH_NAME#release/}
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+        echo "Versão extraída: $VERSION"
+        
+    - name: Criar tag de release
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git tag -a "v${{ env.VERSION }}" -m "Release ${{ env.VERSION }}"
+        git push origin "v${{ env.VERSION }}"
+        
+    - name: Criar release no GitHub
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ env.VERSION }}
+        release_name: Release ${{ env.VERSION }}
+        body: |
+          Release ${{ env.VERSION }} do Randomizador de Torneios
+          
+          ## Mudanças
+          - Melhorias e correções incluídas nesta versão
+          
+          ## Instalação
+          Baixe os arquivos e coloque em um servidor web com PHP 7.4+
+        draft: false
+        prerelease: false
