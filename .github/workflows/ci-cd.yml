@@ -102,7 +102,7 @@ jobs:
         EOF
         
     - name: Upload artefatos de deploy
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: deploy-files
         path: deploy/
@@ -143,7 +143,7 @@ jobs:
         cd ..
         
     - name: Upload arquivo de release
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: release-${{ github.event.release.tag_name }}
         path: randomizador-torneios-${{ github.event.release.tag_name }}.zip
